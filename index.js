@@ -15,7 +15,8 @@
   var kUSER_ADD     = "add user";
   var kSTARTED      = "started";
   var kSTOPPED      = "stopped";
-
+  var kNEW_GAME = "new game";
+  var kINIT_CARDS = "init cards";
 
   // -------------------------------------------------------------------------------------------
   // Initialize variables
@@ -40,6 +41,37 @@
   var onlinePlayers = Array();
   var hostUser = null; // 新增 host 变量
 
+  var images = [
+    "hamburger",
+    "sofa",
+    "hotdog",
+    "sausage",
+    "bread",
+    "cheese",
+    "bed",
+    "light",
+    "drink",
+    "coffee",
+  ];
+
+  function getShuffledPairs() {
+    // 1. 随机选8个
+    let arr = images.slice();
+    let selected = [];
+    for (let i = 0; i < 8; i++) {
+      let idx = Math.floor(Math.random() * arr.length);
+      selected.push(arr.splice(idx, 1)[0]);
+    }
+    // 2. 复制一份
+    let pairs = selected.concat(selected);
+    // 3. 洗牌
+    for (let i = pairs.length - 1; i > 0; i--) {
+      let j = Math.floor(Math.random() * (i + 1));
+      [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
+    }
+    return pairs;
+  }
+
   io.on(kCONNECT, function (socket) {
     var addedUser = false;
 
@@ -47,6 +79,15 @@
       socket.broadcast.emit(kNEW_MESSAGE, {
         username: socket.username,
         message: data
+      });
+    });
+
+    socket.on(kNEW_GAME, function (data) {
+      //创建卡牌
+      var data = getShuffledPairs();
+
+      io.emit(kINIT_CARDS, {
+        message: data,
       });
     });
 

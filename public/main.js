@@ -15,6 +15,8 @@ $(function()
   var kUSER_ADD     = "add user";
   var kSTARTED      = "started";
   var kSTOPPED      = "stopped";
+  var kNEW_GAME = "new game";
+  var kINIT_CARDS = "init cards";
 
   var kTIMEOUT      = 2;
 
@@ -27,6 +29,7 @@ $(function()
   var $window     = $(window);
   var $loginPage  = $('.login.page');
   var $chatPage   = $('.chat.page');
+  var $cardPage = $(".card.page");
 
   var username;
   var playerInfo;
@@ -155,15 +158,8 @@ function playerSelected(elem) {
 }
 
   function startPressed() {
-    $("#btnStart").prop('disabled', true);
-    $("#btnStop").prop('disabled', false);
-
-    var timez = deltaTime();
-    socket.emit(kNEW_TIME, timez);
-    startTimer(timez);
-
-    started = true;
-    socket.emit(kSTARTED, started);
+    // 初始化卡牌
+    socket.emit(kNEW_GAME, {});
   }
 
   function stopPressed() {
@@ -236,7 +232,26 @@ function playerSelected(elem) {
   // -------------------------------------------------------------------------------------------
   // Socket events
   // -------------------------------------------------------------------------------------------
+  socket.on(kINIT_CARDS, function (data) {
+    $("#btnStart").prop("disabled", true);
+    $("#btnStop").prop("disabled", false);
+    $chatPage.fadeOut();
+    $cardPage.show();
 
+    log(kINIT_CARDS, data);
+    var cardsHtml = "";
+    data.message.forEach(function (item, index) {
+      cardsHtml += `
+          <div class="card-container col" data-name="${item}">
+            <div class="card-inner">
+              <div class="card-front"><img src="images/back.png"></div>
+              <div class="card-back"><img src="images/${item}.png"></div>
+            </div>
+          </div>
+        `;
+    });
+    $("#cards").html(cardsHtml);
+  });
 
   socket.on(kLOGIN, function (data) {
     log(kLOGIN, data);
