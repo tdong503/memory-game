@@ -17,6 +17,7 @@ $(function()
   var kSTOPPED      = "stopped";
   var kNEW_GAME = "new game";
   var kINIT_CARDS = "init cards";
+  var kCLICK_CARDS = "click cards";
 
   var kTIMEOUT      = 2;
 
@@ -42,7 +43,10 @@ $(function()
   // -------------------------------------------------------------------------------------------
   // Functions
   // -------------------------------------------------------------------------------------------
-
+  $("#cards").on("click", ".card-container", function () {
+    var idx = $(this).index();
+    socket.emit(kCLICK_CARDS, idx);
+  });
 
   function setUsername ( user ) {
     username = user.name.trim();
@@ -232,6 +236,10 @@ function playerSelected(elem) {
   // -------------------------------------------------------------------------------------------
   // Socket events
   // -------------------------------------------------------------------------------------------
+  socket.on(kCLICK_CARDS, function (data) {
+    $(".card-container").eq(data).toggleClass("flipped");
+  });
+
   socket.on(kINIT_CARDS, function (data) {
     $("#btnStart").prop("disabled", true);
     $("#btnStop").prop("disabled", false);

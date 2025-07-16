@@ -17,6 +17,7 @@
   var kSTOPPED      = "stopped";
   var kNEW_GAME = "new game";
   var kINIT_CARDS = "init cards";
+  var kCLICK_CARDS = "click cards";
 
   // -------------------------------------------------------------------------------------------
   // Initialize variables
@@ -160,7 +161,10 @@
         });
       }
     });
-    
+
+    socket.on(kCLICK_CARDS, function (data) {
+      io.emit(kCLICK_CARDS, data);
+    });
   });
 
 
