@@ -1,0 +1,17 @@
+{
+  "name": "first_program",
+  "version": "1.0.0",
+  "description": "one try",
+  "main": "index.js",
+  "private": false,
+  "license": "MIT",
+  "dependencies": {
+    "bootstrap": "^5.3.7",
+    "engine.io": "1.6.8",
+    "express": "3.4.8",
+    "has-binary": "0.1.7",
+    "socket.io-adapter": "0.4.0",
+    "socket.io-client": "1.4.5",
+    "socket.io-parser": "2.2.6"
+  }
+}
