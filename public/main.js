@@ -192,7 +192,18 @@ function playerSelected(elem) {
     }
   }
 
-
+  function renderHostControlled(data) {
+    console.log("renderHostControlled", data);
+    if (
+        data.host &&
+        playerInfo &&
+        playerInfo.displayName === data.host.displayName
+    ) {
+      $("#btnStart").show();
+    } else {
+      $("#btnStart").hide();
+    }
+  }
   // -------------------------------------------------------------------------------------------
   // Main
   // -------------------------------------------------------------------------------------------
@@ -230,6 +241,7 @@ function playerSelected(elem) {
   socket.on(kLOGIN, function (data) {
     log(kLOGIN, data);
     addDivPlayers(data);
+    renderHostControlled(data);
   });
 
   socket.on(kNEW_MESSAGE, function (data) {
@@ -249,11 +261,13 @@ function playerSelected(elem) {
   socket.on(kUSER_JOINED, function (data) {
     log(kUSER_JOINED, data);
     addDivPlayers(data);
+    renderHostControlled(data);
   });
 
   socket.on(kUSER_LEFT, function (data) {
     log(kUSER_LEFT, data);
     addDivPlayers(data);
+    renderHostControlled(data);
   });
 
   socket.on(kSTARTED, function (data) {

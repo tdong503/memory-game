@@ -38,7 +38,7 @@
   var numUsers      = 0;
   var players       = Array();
   var onlinePlayers = Array();
-
+  var hostUser = null; // 新增 host 变量
 
   io.on(kCONNECT, function (socket) {
     var addedUser = false;
@@ -79,16 +79,23 @@
       ++numUsers;
       players.push(username);
 
+      // 分配host：第一个进来的人
+      if (!hostUser) {
+        hostUser = username;
+      }
+
       addedUser = true;
       socket.emit(kLOGIN, {
         numUsers: numUsers,
-        players : players
+        players : players,
+        host: hostUser,
       });
 
       socket.broadcast.emit(kUSER_JOINED, {
         username: socket.username,
         numUsers: numUsers,
-        players : players
+        players : players,
+        host: hostUser,
       });
     });
 
@@ -97,12 +104,18 @@
         --numUsers;
 
         var idx = players.indexOf(socket.username);
-        players.splice(idx);
+        players.splice(idx, 1);
+
+        // 如果host离开，分配新的host（如有其他人）
+        if (hostUser === socket.username) {
+          hostUser = players.length > 0 ? players[0] : null;
+        }
 
         socket.broadcast.emit(kUSER_LEFT, {
           username: socket.username,
           numUsers: numUsers,
-          players: players
+          players: players,
+          host: hostUser,
         });
       }
     });
