@@ -18,7 +18,8 @@ $(function()
   var kNEW_GAME = "new game";
   var kINIT_CARDS = "init cards";
   var kCLICK_CARDS = "click cards";
-
+  var kADD_MATCHED_NUMBER = "add matched number";
+  var kFLIP_CARDS = "slip cards";
   var kTIMEOUT      = 2;
 
 
@@ -236,6 +237,19 @@ function playerSelected(elem) {
   // -------------------------------------------------------------------------------------------
   // Socket events
   // -------------------------------------------------------------------------------------------
+  socket.on(kFLIP_CARDS, function (data) {
+    $(".card-container").eq(data[1]).toggleClass("flipped");
+    setTimeout(function() {
+      $(".card-container").eq(data[0]).toggleClass("flipped");
+      $(".card-container").eq(data[1]).toggleClass("flipped");
+    }, 1000);
+  });
+
+  socket.on(kADD_MATCHED_NUMBER, function (data) {
+    $(".card-container").eq(data).toggleClass("flipped");
+    //会增加已经匹配的数字，同时给选中的人的选中数字增加1
+  });
+
   socket.on(kCLICK_CARDS, function (data) {
     $(".card-container").eq(data).toggleClass("flipped");
   });
