@@ -19,7 +19,7 @@ var kINIT_CARDS = "init cards";
 var kCLICK_CARDS = "click cards";
 var kADD_MATCHED_NUMBER = "add matched number";
 var kFLIP_CARDS = "slip cards";
-
+var kSWITCH_USER = "switch user";
 // -------------------------------------------------------------------------------------------
 // Initialize variables
 // -------------------------------------------------------------------------------------------
@@ -30,7 +30,7 @@ var app = express();
 var server = require('http').createServer(app);
 var io = require('./server')(server);
 var port = process.env.PORT || 12345;
-
+var currentUser;
 
 server.listen(port, function () {
     console.log('Server listening at port %d', port);
@@ -83,7 +83,7 @@ io.on(kCONNECT, function (socket) {
 
     socket.on(kNEW_MESSAGE, function (data) {
         socket.broadcast.emit(kNEW_MESSAGE, {
-            username: socket.username,
+            username: socket.user,
             message: data
         });
     });
@@ -94,6 +94,7 @@ io.on(kCONNECT, function (socket) {
 
         io.emit(kINIT_CARDS, {
             message: data,
+            currentUser: currentUser
         });
     });
 
@@ -119,16 +120,20 @@ io.on(kCONNECT, function (socket) {
         });
     });
 
-    socket.on(kUSER_ADD, function (username) {
+    socket.on(kUSER_ADD, function (user) {
         if (addedUser) return;
 
-        socket.username = username;
+        socket.user = user;
         ++numUsers;
-        players.push(username);
+        players.push(user);
 
         // 分配host：第一个进来的人
         if (!hostUser) {
-            hostUser = username;
+            hostUser = user;
+        }
+        
+        if (!currentUser) {
+            currentUser = user;
         }
 
         addedUser = true;
@@ -139,7 +144,7 @@ io.on(kCONNECT, function (socket) {
         });
 
         socket.broadcast.emit(kUSER_JOINED, {
-            username: socket.username,
+            username: socket.user,
             numUsers: numUsers,
             players: players,
             host: hostUser,
@@ -150,16 +155,16 @@ io.on(kCONNECT, function (socket) {
         if (addedUser) {
             --numUsers;
 
-            var idx = players.indexOf(socket.username);
+            var idx = players.indexOf(socket.user);
             players.splice(idx, 1);
 
             // 如果host离开，分配新的host（如有其他人）
-            if (hostUser === socket.username) {
+            if (hostUser === socket.user) {
                 hostUser = players.length > 0 ? players[0] : null;
             }
 
             socket.broadcast.emit(kUSER_LEFT, {
-                username: socket.username,
+                username: socket.user,
                 numUsers: numUsers,
                 players: players,
                 host: hostUser,
@@ -182,6 +187,8 @@ io.on(kCONNECT, function (socket) {
             const tempData = [tempSelected.index, data];
             tempSelected = {};
             io.emit(kFLIP_CARDS, tempData);
+            currentUser = players[(players.indexOf(currentUser) + 1) % players.length];
+            io.emit(kSWITCH_USER, currentUser);
         }
     });
 });
