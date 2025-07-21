@@ -21,6 +21,7 @@ $(function () {
     var kFLIP_CARDS = "slip cards";
     var kTIMEOUT = 2;
     var kSWITCH_USER = "switch user";
+    var kUPDATE_SCORE = "update score";
 
     // -------------------------------------------------------------------------------------------
     // Initialize variables
@@ -260,6 +261,22 @@ $(function () {
             setCookie("sessionId", sessionId, 30);
         }
         console.log(username);
+    });
+
+    socket.on(kUPDATE_SCORE, function (data) {
+        var scoreHtml = `
+        <div class="row">
+            <div class="col">${data.matched} / ${data.total}</div>
+        `;
+        data.playersWithScore.forEach(function (item, index) {
+            scoreHtml += `
+          <div class="col" data-name="${item}">
+              ${item.username} : ${item.score}
+          </div>
+        `;
+        });
+        scoreHtml += `</div>`;
+        $("#players_record").html(scoreHtml);
     });
 
     socket.on(kSWITCH_USER, function (data) {

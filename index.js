@@ -20,6 +20,7 @@ var kCLICK_CARDS = "click cards";
 var kADD_MATCHED_NUMBER = "add matched number";
 var kFLIP_CARDS = "slip cards";
 var kSWITCH_USER = "switch user";
+var kUPDATE_SCORE = "update score";
 // -------------------------------------------------------------------------------------------
 // Initialize variables
 // -------------------------------------------------------------------------------------------
@@ -31,6 +32,7 @@ var server = require('http').createServer(app);
 var io = require('./server')(server);
 var port = process.env.PORT || 12345;
 var currentUser;
+var score;
 
 server.listen(port, function () {
     console.log('Server listening at port %d', port);
@@ -96,6 +98,14 @@ io.on(kCONNECT, function (socket) {
             message: data,
             currentUser: currentUser
         });
+
+        //初始化计分板
+        score = {
+            total: 8,
+            matched: 0,
+            playersWithScore: players.map(player => ({ username: player.displayName, sessionId: player.sessionId, score: 0 })),
+        };
+        io.emit(kUPDATE_SCORE, score);
     });
 
     socket.on(kNEW_TIME, function (data) {
@@ -182,6 +192,19 @@ io.on(kCONNECT, function (socket) {
             // Match found
             tempSelected = {};
             io.emit(kADD_MATCHED_NUMBER, data);
+
+            score = {
+                total: 8,
+                matched: score.matched + 1,
+                playersWithScore: score.playersWithScore.map(playerScore => ({
+                    username: playerScore.username,
+                    sessionId: playerScore.sessionId,
+                    score: playerScore.sessionId === currentUser.sessionId
+                        ? playerScore.score + 1
+                        : playerScore.score
+                })),
+            };
+            io.emit(kUPDATE_SCORE, score);
         } else {
             // Not matched
             const tempData = [tempSelected.index, data];
