@@ -17,7 +17,6 @@ var kSTOPPED = "stopped";
 var kNEW_GAME = "new game";
 var kINIT_CARDS = "init cards";
 var kCLICK_CARDS = "click cards";
-var kADD_MATCHED_NUMBER = "add matched number";
 var kFLIP_CARDS = "slip cards";
 var kSWITCH_USER = "switch user";
 var kUPDATE_SCORE = "update score";
@@ -77,6 +76,7 @@ function getShuffledPairs() {
         [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
     }
     cardsGenerated = pairs;
+    console.log(pairs);
     return pairs;
 }
 
@@ -110,22 +110,6 @@ io.on(kCONNECT, function (socket) {
 
     socket.on(kNEW_TIME, function (data) {
         socket.broadcast.emit(kNEW_TIME, {
-            message: data
-        });
-    });
-
-    socket.on(kSTARTED, function (data) {
-        socket.broadcast.emit(kSTARTED, {
-            message: data
-        });
-    });
-
-    socket.on(kSTOPPED, function (data) {
-        socket.emit(kSTOPPED, {
-            message: data
-        });
-
-        socket.broadcast.emit(kSTOPPED, {
             message: data
         });
     });
@@ -183,16 +167,11 @@ io.on(kCONNECT, function (socket) {
     });
 
     socket.on(kCLICK_CARDS, function (data) {
-        console.log("card is " + cardsGenerated[data]);
-        console.log("tempSelected is " + tempSelected.index + " " + tempSelected.data);
         if (typeof tempSelected.index === "undefined") {
             tempSelected = { index: data, data: cardsGenerated[data] };
             io.emit(kCLICK_CARDS, data);
         } else if (tempSelected.data === cardsGenerated[data]) {
             // Match found
-            tempSelected = {};
-            io.emit(kADD_MATCHED_NUMBER, data);
-
             score = {
                 total: 8,
                 matched: score.matched + 1,
@@ -204,6 +183,17 @@ io.on(kCONNECT, function (socket) {
                         : playerScore.score
                 })),
             };
+
+            if (score.matched === score.total) {
+                // 选出胜利者
+                const maxScore = Math.max(...score.playersWithScore.map(p => p.score));
+                const winners = score.playersWithScore.filter(p => p.score === maxScore);
+
+                // 游戏结束，发送消息，给胜利和失败发送不同的消息
+                socket.emit(kSTOPPED, { message: "Game Over! All pairs matched!" });
+                socket.broadcast.emit(kSTOPPED, { message: "Game Over! All pairs matched!" });
+            }
+
             io.emit(kUPDATE_SCORE, score);
         } else {
             // Not matched

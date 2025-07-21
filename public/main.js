@@ -17,7 +17,6 @@ $(function () {
     var kNEW_GAME = "new game";
     var kINIT_CARDS = "init cards";
     var kCLICK_CARDS = "click cards";
-    var kADD_MATCHED_NUMBER = "add matched number";
     var kFLIP_CARDS = "slip cards";
     var kTIMEOUT = 2;
     var kSWITCH_USER = "switch user";
@@ -291,11 +290,6 @@ $(function () {
         }, 1000);
     });
 
-    socket.on(kADD_MATCHED_NUMBER, function (data) {
-        $(".card-container").eq(data).toggleClass("flipped");
-        //会增加已经匹配的数字，同时给选中的人的选中数字增加1
-    });
-
     socket.on(kCLICK_CARDS, function (data) {
         $(".card-container").eq(data).toggleClass("flipped");
     });
@@ -365,14 +359,11 @@ $(function () {
     });
 
     socket.on(kSTOPPED, function (data) {
-        log(kSTOPPED, data);
-
-        $("#btnStop").prop('disabled', data);
-        $("#btnStart").prop('disabled', data);
-        $("#players").children().css('opacity', '1');
-
-        started = false;
-        stopTimer();
+        $(".modal-body").text(data.message);
+        // Get the modal element
+        var myModal = new bootstrap.Modal(document.getElementById('alertModal'));
+        // Show the modal
+        myModal.show();
     });
 
 });
