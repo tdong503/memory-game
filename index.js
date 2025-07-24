@@ -20,6 +20,7 @@ var kCLICK_CARDS = "click cards";
 var kFLIP_CARDS = "slip cards";
 var kSWITCH_USER = "switch user";
 var kUPDATE_SCORE = "update score";
+var kREGISTER = "register";
 // -------------------------------------------------------------------------------------------
 // Initialize variables
 // -------------------------------------------------------------------------------------------
@@ -43,6 +44,7 @@ var numUsers = 0;
 var players = Array();
 var onlinePlayers = Array();
 var hostUser = null; // 新增 host 变量
+var clients = Array();
 
 var images = [
     "hamburger",
@@ -81,6 +83,7 @@ function getShuffledPairs() {
 }
 
 io.on(kCONNECT, function (socket) {
+    console.log("connect socket id: " + socket.id);
     var addedUser = false;
 
     socket.on(kNEW_MESSAGE, function (data) {
@@ -103,7 +106,11 @@ io.on(kCONNECT, function (socket) {
         score = {
             total: 8,
             matched: 0,
-            playersWithScore: players.map(player => ({ username: player.displayName, sessionId: player.sessionId, score: 0 })),
+            playersWithScore: players.map(player => ({
+                username: player.displayName,
+                sessionId: player.sessionId,
+                score: 0
+            })),
         };
         io.emit(kUPDATE_SCORE, score);
     });
@@ -125,7 +132,7 @@ io.on(kCONNECT, function (socket) {
         if (!hostUser) {
             hostUser = user;
         }
-        
+
         if (!currentUser) {
             currentUser = user;
         }
@@ -168,9 +175,11 @@ io.on(kCONNECT, function (socket) {
 
     socket.on(kCLICK_CARDS, function (data) {
         if (typeof tempSelected.index === "undefined") {
-            tempSelected = { index: data, data: cardsGenerated[data] };
+            tempSelected = {index: data, data: cardsGenerated[data]};
             io.emit(kCLICK_CARDS, data);
         } else if (tempSelected.data === cardsGenerated[data]) {
+            tempSelected = {};
+
             // Match found
             score = {
                 total: 8,
@@ -189,10 +198,22 @@ io.on(kCONNECT, function (socket) {
                 const maxScore = Math.max(...score.playersWithScore.map(p => p.score));
                 const winners = score.playersWithScore.filter(p => p.score === maxScore);
 
+                console.log(winners)
+
                 // 游戏结束，发送消息，给胜利和失败发送不同的消息
-                socket.emit(kSTOPPED, { message: "Game Over! All pairs matched!" });
-                socket.broadcast.emit(kSTOPPED, { message: "Game Over! All pairs matched!" });
+                winners.forEach(winner => {
+                    const client = clients.find(c => c.sessionId === winner.sessionId);
+                    console.log(client)
+                    if (client) {
+                        io.to("/#" + client.socketId).emit(kSTOPPED, {message: "Game Over! You win!"});
+                    }
+                });
+                const loserClients = clients.filter(c => !winners.some(w => w.sessionId === c.sessionId));
+                loserClients.forEach(loser => {
+                    io.to("/#" + loser.socketId).emit(kSTOPPED, {message: "Game Over! You lose!"});
+                });
             }
+            io.emit(kCLICK_CARDS, data);
 
             io.emit(kUPDATE_SCORE, score);
         } else {
@@ -203,6 +224,16 @@ io.on(kCONNECT, function (socket) {
             currentUser = players[(players.indexOf(currentUser) + 1) % players.length];
             io.emit(kSWITCH_USER, currentUser);
         }
+    });
+
+    socket.on(kREGISTER, function (data) {
+        const existingClient = clients.find(client => client.sessionId === data.sessionId);
+        if (existingClient) {
+            existingClient.socketId = data.socketId;
+        } else {
+            clients.push({socketId: data.socketId, sessionId: data.sessionId});
+        }
+        console.log(clients);
     });
 });
 

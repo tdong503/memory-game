@@ -21,6 +21,7 @@ $(function () {
     var kTIMEOUT = 2;
     var kSWITCH_USER = "switch user";
     var kUPDATE_SCORE = "update score";
+    var kREGISTER = "register";
 
     // -------------------------------------------------------------------------------------------
     // Initialize variables
@@ -259,7 +260,11 @@ $(function () {
             sessionId = randHash(32);
             setCookie("sessionId", sessionId, 30);
         }
-        console.log(username);
+
+        socket.emit(kREGISTER, {
+            sessionId: sessionId,
+            socketId: socket.id
+        });
     });
 
     socket.on(kUPDATE_SCORE, function (data) {
@@ -292,6 +297,10 @@ $(function () {
 
     socket.on(kCLICK_CARDS, function (data) {
         $(".card-container").eq(data).toggleClass("flipped");
+    });
+
+    socket.on('tttttt', function (data) {
+        console.log(data);
     });
 
     socket.on(kINIT_CARDS, function (data) {
