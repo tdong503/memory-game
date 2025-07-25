@@ -22,6 +22,7 @@ $(function () {
     var kSWITCH_USER = "switch user";
     var kUPDATE_SCORE = "update score";
     var kREGISTER = "register";
+    var kREJOIN = "rejoin";
 
     // -------------------------------------------------------------------------------------------
     // Initialize variables
@@ -250,6 +251,13 @@ $(function () {
         stopPressed();
     });
 
+    $("#btnConnect").click(function (elem) {
+        socket.connect();
+    });
+
+    $("#btnDisconnect").click(function (elem) {
+        socket.disconnect();
+    });
 
     // -------------------------------------------------------------------------------------------
     // Socket events
@@ -265,6 +273,15 @@ $(function () {
             sessionId: sessionId,
             socketId: socket.id
         });
+        console.log(username);
+        // if (playerInfo) {
+        //     socket.emit(kUSER_ADD, playerInfo);
+        // }
+        if (username)
+        {
+            // 加载已经执行的状态
+            socket.emit(kREJOIN, {username: username, sessionId: sessionId});
+        }
     });
 
     socket.on(kUPDATE_SCORE, function (data) {
@@ -299,10 +316,6 @@ $(function () {
         $(".card-container").eq(data).toggleClass("flipped");
     });
 
-    socket.on('tttttt', function (data) {
-        console.log(data);
-    });
-
     socket.on(kINIT_CARDS, function (data) {
         $("#btnStart").prop("disabled", true);
         $("#btnStop").prop("disabled", false);
@@ -313,10 +326,10 @@ $(function () {
         var cardsHtml = "";
         data.message.forEach(function (item, index) {
             cardsHtml += `
-          <div class="card-container col" data-name="${item}">
+          <div class="card-container col ${item.flipped ? 'flipped' : ''}" data-name="${item.image}">
             <div class="card-inner">
               <div class="card-front"><img src="images/back.png"></div>
-              <div class="card-back"><img src="images/${item}.png"></div>
+              <div class="card-back"><img src="images/${item.image}.png"></div>
             </div>
           </div>
         `;

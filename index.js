@@ -21,6 +21,7 @@ var kFLIP_CARDS = "slip cards";
 var kSWITCH_USER = "switch user";
 var kUPDATE_SCORE = "update score";
 var kREGISTER = "register";
+var kREJOIN = "rejoin";
 // -------------------------------------------------------------------------------------------
 // Initialize variables
 // -------------------------------------------------------------------------------------------
@@ -33,6 +34,7 @@ var io = require('./server')(server);
 var port = process.env.PORT || 12345;
 var currentUser;
 var score;
+var gameStatus = "open"; // 游戏状态
 
 server.listen(port, function () {
     console.log('Server listening at port %d', port);
@@ -59,7 +61,9 @@ var images = [
     "coffee",
 ];
 
+// 用来存储卡牌及状态
 let cardsGenerated;
+// 用来存储临时翻转的牌
 let tempSelected = {};
 
 function getShuffledPairs() {
@@ -68,10 +72,10 @@ function getShuffledPairs() {
     let selected = [];
     for (let i = 0; i < 8; i++) {
         let idx = Math.floor(Math.random() * arr.length);
-        selected.push(arr.splice(idx, 1)[0]);
+        selected.push({image: arr.splice(idx, 1)[0], flipped: false});
     }
     // 2. 复制一份
-    let pairs = selected.concat(selected);
+    let pairs = selected.concat(selected.map(card => ({...card})));
     // 3. 洗牌
     for (let i = pairs.length - 1; i > 0; i--) {
         let j = Math.floor(Math.random() * (i + 1));
@@ -83,7 +87,6 @@ function getShuffledPairs() {
 }
 
 io.on(kCONNECT, function (socket) {
-    console.log("connect socket id: " + socket.id);
     var addedUser = false;
 
     socket.on(kNEW_MESSAGE, function (data) {
@@ -94,6 +97,7 @@ io.on(kCONNECT, function (socket) {
     });
 
     socket.on(kNEW_GAME, function (data) {
+        gameStatus = "in progress";
         //创建卡牌
         var data = getShuffledPairs();
 
@@ -113,6 +117,26 @@ io.on(kCONNECT, function (socket) {
             })),
         };
         io.emit(kUPDATE_SCORE, score);
+    });
+
+    socket.on(kREJOIN, function (data) {
+        // 重新加入游戏
+        if (gameStatus === "in progress") {
+            // 检查players里面是否存在当前用户
+            console.log("players" + players);
+            const existingPlayer = score.playersWithScore.find(player => player.sessionId === data.sessionId);
+            if (existingPlayer) {
+                addedUser = true;
+                // 重新发送当前游戏状态
+                socket.emit(kINIT_CARDS, {
+                    message: cardsGenerated,
+                    currentUser: currentUser
+                });
+            } else {
+                socket.emit(kSTOPPED, {message: "Game started, please wait for the next round."});
+            }
+        }
+
     });
 
     socket.on(kNEW_TIME, function (data) {
@@ -176,10 +200,14 @@ io.on(kCONNECT, function (socket) {
     socket.on(kCLICK_CARDS, function (data) {
         if (typeof tempSelected.index === "undefined") {
             tempSelected = {index: data, data: cardsGenerated[data]};
+            cardsGenerated[data].flipped = true; //更新已经翻转的card的flip为true
+            console.log(cardsGenerated)
             io.emit(kCLICK_CARDS, data);
-        } else if (tempSelected.data === cardsGenerated[data]) {
-            tempSelected = {};
+        } else if (tempSelected.data.image === cardsGenerated[data].image) {
+            // 更新card的状态
+            cardsGenerated[data].flipped = true; //更新第二次翻转的card的flip为true
 
+            tempSelected = {};
             // Match found
             score = {
                 total: 8,
@@ -198,9 +226,9 @@ io.on(kCONNECT, function (socket) {
                 const maxScore = Math.max(...score.playersWithScore.map(p => p.score));
                 const winners = score.playersWithScore.filter(p => p.score === maxScore);
 
-                console.log(winners)
 
                 // 游戏结束，发送消息，给胜利和失败发送不同的消息
+                gameStatus = "over";
                 winners.forEach(winner => {
                     const client = clients.find(c => c.sessionId === winner.sessionId);
                     console.log(client)
@@ -219,11 +247,13 @@ io.on(kCONNECT, function (socket) {
         } else {
             // Not matched
             const tempData = [tempSelected.index, data];
+            cardsGenerated[tempSelected.index].flipped = false; //更新已经翻转的card的flip为false
             tempSelected = {};
             io.emit(kFLIP_CARDS, tempData);
             currentUser = players[(players.indexOf(currentUser) + 1) % players.length];
             io.emit(kSWITCH_USER, currentUser);
         }
+
     });
 
     socket.on(kREGISTER, function (data) {
